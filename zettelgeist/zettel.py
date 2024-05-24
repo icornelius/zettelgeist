@@ -15,7 +15,6 @@ except ImportError:
 
 import os
 import os.path
-import json
 import shutil
 
 from time import strftime
@@ -730,17 +729,17 @@ def get_count(counter_path, counter_name):
     # Create counter db if not present.
     if not os.path.exists(counter_path):
         with open(counter_path, 'w') as dbfile:
-            json.dump({}, dbfile)
+            yaml.dump({}, dbfile)
 
     # Read count from counter. If non-existent, start at 0.
     with open(counter_path, 'r') as dbfile:
-      db = json.load(dbfile)
+      db = yaml.load(dbfile, Loader=Loader)
       count = db.get(counter_name, -1) + 1
 
     # save count for next invocation
     with open(counter_path, 'w') as dbfile:
       db[counter_name] = count
-      json.dump(db, dbfile)
+      yaml.dump(db, dbfile)
     return count
 
 def dict_as_yaml(data):
