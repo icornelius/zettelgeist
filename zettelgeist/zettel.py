@@ -413,7 +413,7 @@ class Zettel(object):
                 except:
                     print("Warning: Cannot copy %s" % key)
         if len(yaml_zettel) > 0:
-           return yaml.dump(yaml_zettel, default_flow_style=False)
+           return yaml.dump(yaml_zettel, default_flow_style=False, allow_unicode=True)
         else:
            return ""
 
@@ -753,7 +753,7 @@ def dict_as_yaml(data):
             presented_data[key] = literal(data[key])
         else:
             presented_data[key] = data[key]
-    return yaml.dump(presented_data, default_flow_style=False, Dumper=Dumper)
+    return yaml.dump(presented_data, default_flow_style=False, Dumper=Dumper, allow_unicode=True)
 
 
 if __name__ == '__main__':
