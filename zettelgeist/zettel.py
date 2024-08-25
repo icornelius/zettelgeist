@@ -557,6 +557,9 @@ def main():
         if not os.path.exists(name_dir):
             print("Destination directory specified (--name-dir %s) does not exist. Will not write file.")
             sys.exit(1)
+        # If omitted, --counter takes on --id
+        if args.id and not args.counter:
+            argsd['counter'] = args.id
         for arg in args.name:
             if arg not in ['id','timestamp', 'counter']:
                 print("--name may only use id, counter, and timestamp (%s found)" % arg)
@@ -569,11 +572,10 @@ def main():
             name_components['id'] = args.id
         digits = args.digits
 
-        # --counter and --id can be specified separately
         # If omitted, --counter takes on --id
-        # If both are omitted, then we are not using counters in the generated names.
-        counter_name = args.counter
-        if not args.counter:
+        if args.counter:
+            counter_name = args.counter
+        elif args.id:
             counter_name = args.id
 
         if counter_name != None:
