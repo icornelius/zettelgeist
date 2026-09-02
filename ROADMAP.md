@@ -109,7 +109,11 @@ to source a `setpath.sh` that no longer exists.
 
 ### Phase 0 — Land the work that is already done ✅
 
-**Shipped 2 September 2026 as 1.1.6** ([#44](https://github.com/ZettelGeist/zettelgeist/pull/44)).
+**Merged and tagged 2 September 2026 as 1.1.6**
+([#44](https://github.com/ZettelGeist/zettelgeist/pull/44)). *Not yet published:*
+the release workflow failed at the PyPI upload with a 403 — the account behind
+the stored API token has no verified primary email — and the GitHub release step
+was skipped in consequence. PyPI still serves 1.1.5. See Phase 2 for the fix.
 
 Four commits had sat on `dev` since August 2024, unmerged and unreleased: Unicode
 in `yaml.dump`, YAML for `.counter.dat`, `--counter` inheriting `--id`, and the
@@ -159,16 +163,50 @@ arguments moved it here:
 *Unblocks: every phase below. Nothing after this is safe to attempt while a tag
 can publish untested code and the test suite cannot execute.*
 
-- Replace `setup.py` with `pyproject.toml` (setuptools or hatchling), moving
-  metadata out of Python. Declare `PyYAML>=6` explicitly and put a floor under
-  `tatsu` — the current breakage is a Tatsu upgrade nobody pinned.
+- Replace `setup.py` with `pyproject.toml`, moving metadata into a PEP 621
+  `[project]` table on a standard build backend (setuptools or hatchling).
+  Declare `PyYAML>=6` explicitly and put a floor under `tatsu` — the current
+  breakage is a Tatsu upgrade nobody pinned. Replace the deprecated license
+  classifier with an SPDX `license` field, and set
+  `long_description_content_type`, which `twine check` already warns about.
+- **Adopt `uv` as the workflow tool** — environments, dependency resolution, the
+  `uv.lock` used by CI, the 3.10–3.13 test matrix via `uv python install`, and
+  optionally `uv publish`. The argument is specific to this project rather than
+  general enthusiasm: the breakage that started this whole effort was an unpinned
+  Tatsu upgrade nobody noticed, and a lockfile in CI is what turns that from
+  silent rot into a red build.
+
+  Two boundaries on it, which are easy to lose by treating uv as one decision
+  instead of two:
+
+  - **uv drives the workflow; it is not the build backend.** Keep a standard
+    PEP 621 declaration on setuptools or hatchling so `pip install -e .` and
+    `pip install zettelgeist` keep working untouched, contributors are not
+    required to have uv, and leaving uv later costs a deleted lockfile rather
+    than redone packaging. `uv_build` is the newer and less exercised piece of
+    that toolchain, and it buys a library of this size very little.
+  - **The lockfile governs CI and development, not installs.** Users get
+    whatever `[project.dependencies]` says, so the version floors above still
+    have to be right. uv makes drift visible; it does not pin anything for
+    consumers.
+
+  Choosing uv also settles PR #43's packaging question in the negative for good:
+  its `poetry.lock` is not among the things harvested.
 - Repair the tests: `yaml.safe_load` in place of the one-argument `yaml.load`,
   and delete the vestigial `test_mytest`, which asserts that `SystemExit` raises
   `SystemExit`.
 - Split CI in two: `ci.yml` runs pytest and the linter on push and pull request
   across 3.10–3.13; `release.yml` triggers only on `v*` tags and moves to PyPI
-  trusted publishing instead of a stored token. Refresh the v2/v1 actions while
-  there.
+  trusted publishing instead of a stored token. Refresh `actions/checkout@v2` and
+  `actions/setup-python@v2` while there — both target the deprecated Node 20 and
+  are being forced onto Node 24.
+
+  Trusted publishing is the higher-value half of that bullet, and it is
+  independent of uv. The 1.1.6 tag failed to publish with a 403 because the
+  PyPI account behind `secrets.PYPI_API_TOKEN` has no verified primary email; the
+  same run also reported that the token disabled Trusted Publishing and with it
+  the attestations the action would otherwise have produced. Moving to trusted
+  publishing retires the token that failed.
 - Settle the formatter question. Phase 1 lands PR #43's Black/isort result and
   its `.pre-commit-config.yaml`; if CI is to run Ruff, decide here whether
   `ruff format` replaces Black or the two coexist, and make the pre-commit config
