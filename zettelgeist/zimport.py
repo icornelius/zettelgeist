@@ -42,6 +42,8 @@ def main():
 
     db = zdb.get(args.database)
     zettel_dir = args.dir
+    process_count = 0
+    error_count = 0
 
     for entry in get_zettels(zettel_dir):
         if args.fullpath:
@@ -49,6 +51,7 @@ def main():
         else:
             filepath = entry
         print("Processing %s" % filepath)
+        process_count += 1
         if filepath.endswith('.yaml'):
             yaml_info = zettel.load_pure_yaml(filepath)
         elif filepath.endswith('.md'):
@@ -63,12 +66,14 @@ def main():
             except zettel.ParseError as error:
                 error_text = str(error)
                 print("%s:\n%s" % (filepath, error_text))
+                error_count += 1
                 continue
 
             if not args.validate:
                 db.bind(z, filepath, document)
                 db.insert_into_table()
 
+    print("Processed %s files with %s errors" % (process_count, error_count))
     db.done()
 
 

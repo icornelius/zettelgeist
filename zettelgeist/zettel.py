@@ -15,7 +15,6 @@ except ImportError:
 
 import os
 import os.path
-import json
 import shutil
 
 from time import strftime
@@ -413,7 +412,7 @@ class Zettel(object):
                 except:
                     print("Warning: Cannot copy %s" % key)
         if len(yaml_zettel) > 0:
-           return yaml.dump(yaml_zettel, default_flow_style=False)
+           return yaml.dump(yaml_zettel, default_flow_style=False, allow_unicode=True)
         else:
            return ""
 
@@ -558,6 +557,9 @@ def main():
         if not os.path.exists(name_dir):
             print("Destination directory specified (--name-dir %s) does not exist. Will not write file.")
             sys.exit(1)
+        # If omitted, --counter takes on --id
+        if args.id and not args.counter:
+            argsd['counter'] = args.id
         for arg in args.name:
             if arg not in ['id','timestamp', 'counter']:
                 print("--name may only use id, counter, and timestamp (%s found)" % arg)
@@ -570,11 +572,10 @@ def main():
             name_components['id'] = args.id
         digits = args.digits
 
-        # --counter and --id can be specified separately
         # If omitted, --counter takes on --id
-        # If both are omitted, then we are not using counters in the generated names.
-        counter_name = args.counter
-        if not args.counter:
+        if args.counter:
+            counter_name = args.counter
+        elif args.id:
             counter_name = args.id
 
         if counter_name != None:
@@ -730,17 +731,17 @@ def get_count(counter_path, counter_name):
     # Create counter db if not present.
     if not os.path.exists(counter_path):
         with open(counter_path, 'w') as dbfile:
-            json.dump({}, dbfile)
+            yaml.dump({}, dbfile)
 
     # Read count from counter. If non-existent, start at 0.
     with open(counter_path, 'r') as dbfile:
-      db = json.load(dbfile)
+      db = yaml.load(dbfile, Loader=Loader)
       count = db.get(counter_name, -1) + 1
 
     # save count for next invocation
     with open(counter_path, 'w') as dbfile:
       db[counter_name] = count
-      json.dump(db, dbfile)
+      yaml.dump(db, dbfile)
     return count
 
 def dict_as_yaml(data):
@@ -753,7 +754,7 @@ def dict_as_yaml(data):
             presented_data[key] = literal(data[key])
         else:
             presented_data[key] = data[key]
-    return yaml.dump(presented_data, default_flow_style=False, Dumper=Dumper)
+    return yaml.dump(presented_data, default_flow_style=False, Dumper=Dumper, allow_unicode=True)
 
 
 if __name__ == '__main__':
